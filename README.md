@@ -31,3 +31,16 @@ The creator of this repo is not responsible if your machine ends up in a state y
 
 # Contributions
 Contributions are always welcome in the form of pull requests with explanatory comments.
+
+
+TODO:
+Use a cli version for accessing data in keepass database
+Improve message. After asking for a full name, before set the computer name, it will ask for password. 
+Show progress while installing home-brew 
+Allow brew to be interactive. Like npm. Show a list, mark options and with a select all.
+edit .gitconfig
+place settings in the settings gile
+
+externalize aliases from the .profile and disable wdx
+
+split files in : commons, with good stuff for everybody and local/personal/private with custom information

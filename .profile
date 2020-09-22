@@ -3,7 +3,7 @@
 #############################################################
 
 # path to google drive folder with the dotfyles path
-export DOTFYLES_CLOUD_PATH="/Volumes/GoogleDrive/My Drive/code/dotfyles"
+export DOTFYLES_CLOUD_PATH="/Volumes/data/Users/dporto/devel/dotfyles"
 
 #############################################################
 # PRIVATE INFO
@@ -112,7 +112,7 @@ alias sufind="sudo find"
 
 alias sane="stty sane"
 
-alias wd="wdx"
+#alias wd="wdx"
 
 alias python="python3"
 
@@ -284,3 +284,5 @@ docker-purge() {
     _rmvolumes
   fi
 }
+. $(brew --prefix asdf)/asdf.sh
+export PATH=/Volumes/data/Users/dporto/devel/fabric-samples/bin:$PATH

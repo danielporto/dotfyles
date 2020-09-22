@@ -84,7 +84,8 @@ ok
 grass "Installing homebrew ..."
 if [ ! -x "$(command -v brew)" ]; then
   # redirect input so we bypass the prompt: http://stackoverflow.com/a/25535532/1700053
-  ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" </dev/null
+  #ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" </dev/null
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" </dev/null
 fi
 ok
 

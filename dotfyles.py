@@ -5,7 +5,7 @@
 # - http://git-secret.io/ to check important files
 # - https://github.com/herrbischoff/awesome-macos-command-line
 # TO SEE:
-# - defaults read /Users/jfloff/Library/Preferences/MobileMeAccounts.plist Accounts
+# - defaults read /Users/danielporto/Library/Preferences/MobileMeAccounts.plist Accounts
 # - https://apple.stackexchange.com/questions/79761/editing-system-preferences-via-terminal
 
 import os
@@ -27,6 +27,8 @@ import urllib
 import json
 import datetime
 import time
+from os.path import expanduser # https://stackoverflow.com/questions/4028904/how-to-get-the-home-directory-in-python
+
 
 os.environ["PYTHONIOENCODING"] = "utf-8"
 DEV_NULL = open(os.devnull, 'w')
@@ -140,7 +142,8 @@ def _create_symlink(src, dst):
 
 def _symlink_to_home(src, dst=None):
     if dst is None:
-        dst = os.path.join('~/', os.path.basename(src))
+        home = expanduser("~")
+        dst = os.path.join(home+'/', os.path.basename(src))
     _info("Symlink from '" + src + "' to '" + dst + "'")
     return _create_symlink(src, dst)
 
@@ -283,7 +286,7 @@ def personal_info():
 
     _ok()
 
-    _grass("Set computer name")
+    _grass("Set computer name (may require the admin password):")
     MAC_NAME = scutil['--get', 'ComputerName'].run()[1].rstrip("\n\r")
     MAC_NAME = _question("Please enter your Mac's name", default=MAC_NAME)
     _info("Set computer name to: " + MAC_NAME)
@@ -427,12 +430,33 @@ def shell():
 
     _symlink_to_home('.profile')
     _symlink_to_home('.profile.private')
+    _symlink_to_home('.myaliases.sh')
+    _symlink_to_home('.myenvs.sh')
+    _symlink_to_home('.mysshdeploy.sh')
 
-    # zsh shell
+    # zsh shell   
     _symlink_to_home('.zprofile')
     _symlink_to_home('.zsh_history')
     _symlink_to_home('.zshrc')
-    _create_symlink('.points', '~/.config/wdx/points')
+
+    home = expanduser("~")
+    if not os.path.exists(home+'/.zim'):
+        # zim will change the zshrc
+        _info("Installing zimfw.")
+        curl["https://raw.githubusercontent.com/zimfw/install/master/install.zsh","-o","/tmp/zimfw_install.zsh"].run()
+        zsh["/tmp/zimfw_install.zsh"].run()
+        _info("Installing completed")
+
+    _info("Speeding up zsh with zimfw.")
+    _symlink_to_home('.zimrc')
+    _info("Updating zimfw modules")
+    subprocess.call(['/bin/zsh', '-i', '-c', 'zimfw install'])
+
+
+
+    _info("TODO setup warppoints")
+    # TODO warppoints wd
+    # _create_symlink('.points', '~/.config/wdx/points')
     _ok()
 
     _grass("Silencing macOS login MOTD")
@@ -441,7 +465,7 @@ def shell():
 
     # https://github.com/gpakosz/.tmux
     _grass("Setting tmux")
-    git['submodule', 'update', '--init', '--recursive']
+    git['submodule', 'update', '--init', '--recursive'].run()
     shutil.copy('.tmux/.tmux.conf', '.')
     _symlink_to_home('.tmux.conf')
     _symlink_to_home('.tmux.conf.local')
@@ -581,31 +605,31 @@ def conf_osx__dock():
 
     dock_settings = _symlink_to_home('.macos_dock')
 
-    _info("Setup docker icons")
-    openapp['/Applications/Docker.app']
-    # tries to read file, if it doesnt exist we do nothing
-    if dock_settings is None:
-        _warn("No macOS dock settings found at '~/.macos_dock'. It might be your first setup. If its not, either run with 'dockutil' or wait for crontab task.")
-    else:
-        # reset first and then set everything
-        dockutil['--remove', 'all', '--no-restart'].run()
-        # count all the rows so we only restart finder on last one
-        row_count = sum(1 for line in open(dock_settings,'r'))
-        # open again but to execute commands
-        with open(dock_settings,'r') as f:
-            items = csv.reader(f, delimiter='\t')
-            for i, line in enumerate(items, start=1):
-                app_section = line[2].replace('persistent-','')
+    _info("TODO  ====Setup docker icons")
+    # openapp['/Applications/Docker.app']
+    # # tries to read file, if it doesnt exist we do nothing
+    # if dock_settings is None:
+    #     _warn("No macOS dock settings found at '~/.macos_dock'. It might be your first setup. If its not, either run with 'dockutil' or wait for crontab task.")
+    # else:
+    #     # reset first and then set everything
+    #     dockutil['--remove', 'all', '--no-restart'].run()
+    #     # count all the rows so we only restart finder on last one
+    #     row_count = sum(1 for line in open(dock_settings,'r'))
+    #     # open again but to execute commands
+    #     with open(dock_settings,'r') as f:
+    #         items = csv.reader(f, delimiter='\t')
+    #         for i, line in enumerate(items, start=1):
+    #             app_section = line[2].replace('persistent-','')
 
-                # remove the file and spaces encoding
-                app_path = line[1].replace('file://','').replace('%20',' ')
-                # also remove the user path if it exists
-                app_path = _replace_user_path(app_path, USER_PATH)
+    #             # remove the file and spaces encoding
+    #             app_path = line[1].replace('file://','').replace('%20',' ')
+    #             # also remove the user path if it exists
+    #             app_path = _replace_user_path(app_path, USER_PATH)
 
-                # add no-restart on every command except the last
-                params = ['--add', app_path, '--section', app_section]
-                if i < row_count: params.append('--no-restart')
-                dockutil[params].run(retcode=None)
+    #             # add no-restart on every command except the last
+    #             params = ['--add', app_path, '--section', app_section]
+    #             if i < row_count: params.append('--no-restart')
+    #             dockutil[params].run(retcode=None)
 
     # _info("Reset dock to fix icons")
     # sudo[find['/private/var/folders/', '-name', 'com.apple.iconservices', '-exec', 'rm', '-rf', '\{\}', '\\']].run()
@@ -821,8 +845,8 @@ def conf_osx__trackpad():
     _info("Enable three finger drag")
     defaults['write', 'com.apple.driver.AppleBluetoothMultitouch.trackpad', 'TrackpadThreeFingerDrag', '-bool', 'true'].run()
 
-    _info("Disable “natural” scrolling")
-    defaults['write', 'NSGlobalDomain', 'com.apple.swipescrolldirection', '-bool', 'false'].run()
+    _info("Enable “natural” scrolling") # todo make this an option
+    defaults['write', 'NSGlobalDomain', 'com.apple.swipescrolldirection', '-bool', 'true'].run()
 
     _info("Zoom in or out")
     defaults['write', 'com.apple.driver.AppleBluetoothMultitouch.trackpad', 'TrackpadPinch', '-bool', 'true'].run()
@@ -848,8 +872,8 @@ def conf_osx__trackpad():
     _info("Disable Show Expose")
     defaults['write', 'com.apple.dock', 'showAppExposeGestureEnabled', '-bool', 'false'].run()
 
-    _info("Trackpad: Disable the Launchpad gesture (pinch with thumb and three fingers)")
-    defaults['write', 'com.apple.dock', 'showLaunchpadGestureEnabled', '-int', '0'].run()
+    _info("Trackpad: Enable the Launchpad gesture (pinch with thumb and three fingers)") #todo make this an option
+    defaults['write', 'com.apple.dock', 'showLaunchpadGestureEnabled', '-int', '1'].run()
 
     _info("Enable Show Desktop")
     defaults['write', 'com.apple.dock', 'showDesktopGestureEnabled', '-bool', 'true'].run()
@@ -1326,27 +1350,6 @@ def vscode():
     local_settings_filepath = os.path.join(vscodedir_path, "syncLocalSettings.json")
     _create_symlink("./vscode_sync_settings.json", local_settings_filepath)
 
-    _info("Check if Settings Sync VSCode settings are set")
-    vscode_settings_filepath = os.path.join(vscodedir_path, "settings.json")
-
-    # make sure the settings file exists
-    open(vscode_settings_filepath, 'a').close()
-
-    # write the gist id to the file
-    with open(vscode_settings_filepath, 'r+') as vsf, open(local_settings_filepath, 'r') as syncf:
-        local_settings_json = json.load(syncf)
-        # loads settings even if empty file
-        try:
-            vscode_settings_json = json.load(vsf)
-        except ValueError:
-            vscode_settings_json = {}
-
-        # write the sync settings token into the vscode settings
-        vscode_settings_json['sync.gist'] = local_settings_json['gist']
-        vsf.seek(0)
-        json.dump(vscode_settings_json, vsf, indent=4)
-        vsf.truncate()
-
     _ok()
 
 
@@ -1393,8 +1396,8 @@ def mendeley():
     _info("Setting Bibtex sync as a one-file type")
     defaults["write", "com.mendeley.Mendeley Desktop", "BibtexSync.syncMode", "-string", "SingleFile"].run()
 
-    _info("Setting Bibtex sync folder")
-    defaults["write", "com.mendeley.Mendeley Desktop", "BibtexSync.path", "-string", "~/Dropbox/PhD Loff/rw"].run()
+    # _info("Setting Bibtex sync folder")
+    # defaults["write", "com.mendeley.Mendeley Desktop", "BibtexSync.path", "-string", "~/Dropbox/PhD Loff/rw"].run()
 
     _ok()
 
@@ -1428,7 +1431,7 @@ def alfred():
 
     # check if alfred is installed
     _download_file('https://github.com/packal/repository/raw/master/com.shawn.patrick.rice.caffeinate.control/caffeinate_control.alfredworkflow','/tmp/')
-    # openapp['/tmp/caffeinate_control.alfredworkflow'].run()
+    openapp['/tmp/caffeinate_control.alfredworkflow'].run()
 
     _ok()
 
@@ -1552,7 +1555,7 @@ if __name__ == '__main__':
     # import only after we install the pip packages
     import requests
     from plumbum import local, FG, BG, TF, RETCODE
-    from plumbum.cmd import sudo, true, rm, ln, echo, tee, cp, mv, ls, find, grep
+    from plumbum.cmd import sudo, true, rm, ln, echo, tee, cp, mv, ls, find, grep, curl, zsh, cat
 
     # if only one function was called
     if args.method:
@@ -1562,9 +1565,11 @@ if __name__ == '__main__':
     _snek("Starting! Hissss...")
 
     # start caffeine so computer doesnt go to sleep
-    caffeinate = local["caffeinate"]
-    caff = caffeinate.popen("-i -d")
-
+    try:
+        caffeinate = local["caffeinate"]
+        caff = caffeinate.popen("-i -d")
+    except:
+        print("Caffeinate is not available, is this a fresh install?")
     # change working dir to this script dir
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -1577,18 +1582,18 @@ if __name__ == '__main__':
         _grass("Consider reviewing these changes and commiting.")
         _snek("Hissss. All done!")
     else:
-        check_sip(double_check=False)
-        personal_info()
-        git()
-        brew()
+        # check_sip(double_check=False)
+        # personal_info()
+        # git()
+        # brew()
         shell()
-        conf_osx()
-        conf_apps()
-        teardown()
+        # conf_osx()
+        # conf_apps()
+        # teardown()
 
-        # uninstall pip packages
-        uninstall_pip_packages(installed_packages)
-        caff.terminate()
+        # # uninstall pip packages
+        # uninstall_pip_packages(installed_packages)
+        # caff.terminate()
 
         _grass("Note that some of these changes require a logout/restart to take effect.")
         _grass("You should also NOT open System Preferences. It might overwrite some of the settings.")

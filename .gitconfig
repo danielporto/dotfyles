@@ -4,11 +4,11 @@
     path = ~/.gitconfig.private
 
 [user]
-    name = João Ferreira Loff
-    email = jfloff@gmail.com
+    name = Daniel Porto
+	email = daniel.porto@gmail.com
 
 [github]
-    user = jfloff
+    user = danielporto
 
 [color]
     # ui = true is a superset of all the more specific color options

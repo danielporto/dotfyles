@@ -2,7 +2,7 @@
 # personal settings
 #
 
-# private dotyfiles settings
+# private dotfyles settings
 .gitconfig.private
 .profile.private
 # I don't trust my history to go around like that ...
